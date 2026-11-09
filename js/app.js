@@ -1,6 +1,7 @@
 import { player } from './player.js';
 import { store } from './store.js';
 import { searchAlbums, getAlbum, GENRES, SORTS, licenseLabel, itemUrl } from './api.js';
+import { topAlbums, topSongs, searchMalayalam, fullSongLinks, ML_ARTISTS } from './apple.js';
 
 // =====================================================================
 // Helpers
@@ -145,7 +146,9 @@ function trackRow(t, i, key, showAlbum, showCover) {
   const liked = store.isLiked(t.id);
   return `<div class="row" role="listitem" data-list="${key}" data-index="${i}" data-track="${esc(t.id)}" tabindex="0">
     <span class="row-num"><span class="n">${i + 1}</span><span class="eq" aria-hidden="true"><i></i><i></i><i></i></span>${icon('play', 'row-play')}</span>
-    <span class="row-main">${showCover ? art(t.cover, t.albumId, 'xs') : ''}<span class="row-text"><span class="row-title">${esc(t.title)}</span><a class="row-artist" href="${artistHref(t.artist)}">${esc(t.artist)}</a></span></span>
+    <span class="row-main">${showCover ? art(t.cover, t.albumId, 'xs') : ''}<span class="row-text"><span class="row-title">${esc(t.title)}</span><span class="row-sub">${
+      t.preview ? '<span class="pill tiny" title="Official 30-second preview">Preview</span>' : ''
+    }<a class="row-artist" href="${t.artistHref || artistHref(t.artist)}">${esc(t.artist)}</a></span></span></span>
     ${showAlbum ? `<a class="row-album" href="${albumHref(t.albumId)}">${esc(t.album)}</a>` : ''}
     ${likeButton(t.id, liked)}
     <span class="row-dur">${t.duration ? fmtTime(t.duration) : ''}</span>
@@ -179,14 +182,20 @@ function hero({ seed, artHtml, eyebrow, title, line }) {
 // =====================================================================
 // Pages
 // =====================================================================
+const freeAlbums = (opts) => () => searchAlbums({ ...opts, rows: 14 }).then((r) => r.albums);
 const HOME_SHELVES = [
-  { key: 'trending', title: 'Trending this week', opts: { sort: 'trending' }, href: '#/genre/all?sort=trending' },
-  { key: 'popular', title: 'All-time favorites', opts: { sort: 'popular' }, href: '#/genre/all' },
+  { key: 'malayalam', title: 'Top Malayalam albums', href: '#/malayalam?tab=albums', load: () => topAlbums(100).then((a) => a.slice(0, 16)) },
+  { key: 'trending', title: 'Trending free music this week', href: '#/genre/all?sort=trending', load: freeAlbums({ sort: 'trending' }) },
+  { key: 'popular', title: 'All-time favorites', href: '#/genre/all', load: freeAlbums({ sort: 'popular' }) },
   ...['lofi', 'electronic', 'ambient', 'jazz', 'hiphop', 'chill', 'rock'].map((k) => {
     const g = GENRES.find((x) => x.key === k);
-    return { key: k, title: g.name, opts: { genre: k }, href: `#/genre/${k}` };
+    return { key: k, title: g.name, href: `#/genre/${k}`, load: freeAlbums({ genre: k }) };
   }),
 ];
+
+const malayalamTile = `<article class="quick"><div class="art sq genre-art" style="--h:150"><span class="art-fallback">${icon(
+  'music'
+)}</span></div><a class="quick-title" href="#/malayalam">Malayalam hits</a></article>`;
 
 function renderHome(r) {
   const hour = new Date().getHours();
@@ -197,17 +206,20 @@ function renderHome(r) {
         (a) => `<article class="quick">${art(a.cover, a.id, 'sq')}<a class="quick-title" href="${albumHref(a.id)}">${esc(a.title)}</a>
           <button class="card-play quick-play" data-action="play-album" data-id="${esc(a.id)}" aria-label="Play ${esc(a.title)}">${icon('play')}</button></article>`
       )
-    : GENRES.slice(0, 6).map(
-        (g) => `<article class="quick"><div class="art sq genre-art" style="--h:${g.hue}"><span class="art-fallback">${icon('music')}</span></div><a class="quick-title" href="#/genre/${g.key}">${esc(g.name)}</a></article>`
-      );
+    : [
+        malayalamTile,
+        ...GENRES.slice(0, 5).map(
+          (g) => `<article class="quick"><div class="art sq genre-art" style="--h:${g.hue}"><span class="art-fallback">${icon('music')}</span></div><a class="quick-title" href="#/genre/${g.key}">${esc(g.name)}</a></article>`
+        ),
+      ];
 
   view.innerHTML = `
     <section class="page-head" style="--h:${(hour * 17) % 360}">
       <h1>${greet}</h1>
-      <p class="sub">Thousands of albums, free to stream — released by independent artists under open licenses.</p>
+      <p class="sub">Top Malayalam songs from Kerala, plus thousands of free albums from independent artists.</p>
     </section>
     <div class="quick-grid">${quick.join('')}</div>
-    <div class="chips" aria-label="Genres">${GENRES.map((g) => `<a class="chip" href="#/genre/${g.key}" style="--h:${g.hue}">${esc(g.name)}</a>`).join('')}</div>
+    <div class="chips" aria-label="Genres"><a class="chip" href="#/malayalam">Malayalam</a>${GENRES.map((g) => `<a class="chip" href="#/genre/${g.key}" style="--h:${g.hue}">${esc(g.name)}</a>`).join('')}</div>
     ${recent.length > 6 ? shelf('Jump back in', '#/library', 'recent', recent.map(albumCard).join('')) : ''}
     ${HOME_SHELVES.map((s) => shelf(s.title, s.href, s.key)).join('')}
   `;
@@ -219,7 +231,7 @@ function renderHome(r) {
         if (!en.isIntersecting) continue;
         io.unobserve(en.target);
         const s = HOME_SHELVES.find((x) => `shelf-${x.key}` === en.target.id);
-        if (s) fillShelf(r, en.target, { ...s.opts, rows: 14 });
+        if (s) fillShelf(r, en.target, s.load);
       }
     },
     { root: main, rootMargin: '600px 0px' }
@@ -227,9 +239,9 @@ function renderHome(r) {
   HOME_SHELVES.forEach((s) => io.observe($(`#shelf-${s.key}`)));
 }
 
-async function fillShelf(r, el, opts) {
+async function fillShelf(r, el, load) {
   try {
-    const { albums } = await searchAlbums(opts);
+    const albums = await load();
     if (!r.alive()) return;
     el.innerHTML = albums.length ? albums.map(albumCard).join('') : '<p class="muted">Nothing here yet.</p>';
     refreshPlaying();
@@ -275,22 +287,24 @@ function renderSearch(r, q = '') {
 
   if (!q) {
     view.innerHTML = `<h1 class="page-title">Browse all</h1>
-      <div class="genre-grid">${GENRES.map(
+      <div class="genre-grid"><a class="genre-tile" href="#/malayalam" style="--h:150"><span>Malayalam</span>${icon('music')}</a>${GENRES.map(
         (g) => `<a class="genre-tile" href="#/genre/${g.key}" style="--h:${g.hue}"><span>${esc(g.name)}</span>${icon('music')}</a>`
       ).join('')}</div>`;
     if (!mobileMQ.matches) input.focus();
     return;
   }
 
+  const mlLink = `<a class="ml-hint" href="#/malayalam?q=${encodeURIComponent(q)}">${icon('search')}<span>Looking for Malayalam songs? Search “${esc(q)}” in <b>Malayalam</b></span>${icon('chevron-right')}</a>`;
   view.innerHTML = `
+    ${mlLink}
     <div id="search-top"></div>
-    <h2 class="section-title">Albums</h2>
+    <h2 class="section-title">Free albums</h2>
     <div class="grid" id="grid">${skeletonCards(12)}</div>
     <div class="more-wrap" id="more"></div>`;
 
   return loadGrid(r, { text: q }, (total, albums) => {
     if (!albums.length) {
-      view.innerHTML = `<div class="empty big"><h2>No results for “${esc(q)}”</h2><p>Try different words, an artist name or a genre like “ambient”.</p></div>`;
+      view.innerHTML = `${mlLink}<div class="empty big"><h2>No free albums for “${esc(q)}”</h2><p>Try different words, an artist name or a genre like “ambient”.</p></div>`;
       return;
     }
     const top = albums[0];
@@ -352,18 +366,28 @@ async function renderAlbum(r, id) {
   pageCtx = { href, label: album.title, album };
   const lic = licenseLabel(album.license);
   const n = album.tracks.length;
-  const line = `<a class="strong" href="${artistHref(album.artist)}">${esc(album.artist)}</a>${album.year ? ` • ${esc(album.year)}` : ''} • ${plural(n, 'song')}${
+  const sourceUrl = album.sourceUrl || itemUrl(album.id);
+  const sourceName = album.sourceName || 'Internet Archive';
+  const line = `<a class="strong" href="${album.artistHref || artistHref(album.artist)}">${esc(album.artist)}</a>${album.year ? ` • ${esc(album.year)}` : ''} • ${plural(n, 'song')}${
     album.duration ? `, ${fmtLong(album.duration)}` : ''
   }`;
+  const fullAlbum = album.preview
+    ? `<div class="info-line full-links"><span>Hear the full album on</span>${fullSongLinks(album.title, album.artist)
+        .map((l) => `<a class="btn ghost sm" href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label)} ${icon('external')}</a>`)
+        .join('')}</div>`
+    : '';
 
   view.innerHTML = `
-    ${hero({ seed: album.id, artHtml: art(album.coverLarge || album.cover, album.id, 'hero-art'), eyebrow: 'Album', title: album.title, line })}
+    ${hero({ seed: album.id, artHtml: art(album.coverLarge || album.cover, album.id, 'hero-art'), eyebrow: album.preview ? 'Album · Previews' : 'Album', title: album.title, line })}
     ${n ? actionsBar() : ''}
-    ${n ? trackRows(album.tracks, 'main') : `<div class="empty"><p>This release has no streamable audio files.</p><a class="btn ghost" href="${itemUrl(album.id)}" target="_blank" rel="noopener">Open on Internet Archive</a></div>`}
+    ${fullAlbum}
+    ${n ? trackRows(album.tracks, 'main') : `<div class="empty"><p>This release has no playable audio.</p><a class="btn ghost" href="${esc(sourceUrl)}" target="_blank" rel="noopener">Open on ${esc(sourceName)}</a></div>`}
     <section class="album-info">
       <div class="info-line">
         ${lic ? `<a class="license" href="${esc(album.license)}" target="_blank" rel="noopener license">${esc(lic)}</a>` : ''}
-        <a class="btn link" href="${itemUrl(album.id)}" target="_blank" rel="noopener">Source: Internet Archive ${icon('external')}</a>
+        ${album.preview ? `<span class="license">Official 30-second previews</span>` : ''}
+        ${album.copyright ? `<span>${esc(album.copyright)}</span>` : ''}
+        <a class="btn link" href="${esc(sourceUrl)}" target="_blank" rel="noopener">Source: ${esc(sourceName)} ${icon('external')}</a>
       </div>
       ${album.tags.length ? `<div class="chips small">${album.tags.map((t) => `<a class="chip" href="#/search/${encodeURIComponent(t)}">${esc(t)}</a>`).join('')}</div>` : ''}
       ${album.description ? `<p class="desc clamp" id="desc">${esc(album.description)}</p><button class="btn link" data-action="expand-desc">Show more</button>` : ''}
@@ -371,7 +395,7 @@ async function renderAlbum(r, id) {
     <div id="more-by"></div>
   `;
 
-  if (album.artist && !/various/i.test(album.artist)) {
+  if (!album.preview && album.artist && !/various/i.test(album.artist)) {
     try {
       const { albums } = await searchAlbums({ artist: album.artist, rows: 13 });
       const others = albums.filter((a) => a.id !== album.id).slice(0, 12);
@@ -382,6 +406,64 @@ async function renderAlbum(r, id) {
     } catch {
       /* optional section */
     }
+  }
+}
+
+async function renderMalayalam(r, params) {
+  const q = (params.get('q') || '').trim();
+  const tab = params.get('tab') === 'albums' ? 'albums' : 'songs';
+  view.innerHTML = `
+    <section class="banner" style="--h:150">
+      <span class="eyebrow">Kerala · India</span>
+      <h1>Malayalam</h1>
+      <p class="sub">The biggest Malayalam film songs and albums. Songs play as official 30-second previews. Tap <b>Full song</b> to hear the whole track on Spotify, YouTube or JioSaavn.</p>
+    </section>
+    <form class="inline-search" id="ml-search" role="search">
+      ${icon('search')}
+      <input name="q" type="search" value="${esc(q)}" placeholder="Search Malayalam songs, films or singers…" aria-label="Search Malayalam music" autocomplete="off" />
+      <button class="btn primary" type="submit">Search</button>
+    </form>
+    <div class="chips small scroll" aria-label="Popular Malayalam artists">${ML_ARTISTS.map(
+      (n) => `<a class="chip ${n === q ? 'active' : ''}" href="#/malayalam?q=${encodeURIComponent(n)}">${esc(n)}</a>`
+    ).join('')}</div>
+    ${
+      q
+        ? ''
+        : `<div class="tabs" role="tablist">
+            <a role="tab" aria-selected="${tab === 'songs'}" class="tab ${tab === 'songs' ? 'active' : ''}" href="#/malayalam">Top songs</a>
+            <a role="tab" aria-selected="${tab === 'albums'}" class="tab ${tab === 'albums' ? 'active' : ''}" href="#/malayalam?tab=albums">Top albums</a>
+          </div>`
+    }
+    <div id="ml-body"><div class="more-wrap"><div class="spinner" aria-label="Loading"></div></div></div>`;
+
+  const body = $('#ml-body');
+  try {
+    if (q) {
+      const res = await searchMalayalam(q);
+      if (!r.alive()) return;
+      pageCtx = { href: `#/malayalam?q=${encodeURIComponent(q)}`, label: `Malayalam · ${q}` };
+      if (!res.songs.length && !res.relatedSongs.length) {
+        body.innerHTML = `<div class="empty big"><h2>No Malayalam songs found for “${esc(q)}”</h2><p>Try a film name, a singer or a composer, e.g. “Premam” or “Sushin Shyam”.</p></div>`;
+        return;
+      }
+      body.innerHTML = res.songs.length
+        ? `<h2 class="section-title">Songs</h2>${actionsBar({ menu: false })}${trackRows(res.songs.slice(0, 60), 'main', { showAlbum: true, showCover: true })}
+           ${res.albums.length ? shelf('Albums', '', 'ml-albums', res.albums.slice(0, 20).map(albumCard).join('')) : ''}`
+        : `<div class="empty"><p>Nothing tagged Malayalam for “${esc(q)}”. These related Indian results may still include it.</p></div>
+           ${trackRows(res.relatedSongs.slice(0, 40), 'related', { showAlbum: true, showCover: true })}`;
+    } else if (tab === 'albums') {
+      const albums = await topAlbums(100);
+      if (!r.alive()) return;
+      body.innerHTML = `<div class="grid">${albums.map(albumCard).join('')}</div>`;
+    } else {
+      const songs = await topSongs(100);
+      if (!r.alive()) return;
+      pageCtx = { href: '#/malayalam', label: 'Top Malayalam songs' };
+      body.innerHTML = `${actionsBar({ menu: true })}${trackRows(songs, 'main', { showAlbum: true, showCover: true })}`;
+    }
+    refreshPlaying();
+  } catch (err) {
+    if (r.alive()) body.innerHTML = errorBlock(err.message || 'Couldn’t load Malayalam music.');
   }
 }
 
@@ -474,8 +556,10 @@ function renderAbout() {
   view.innerHTML = `
     <article class="prose">
       <h1 class="page-title">About Openair</h1>
-      <p>Openair is a free music streaming site. Every album comes from the <a href="https://archive.org/details/netlabels" target="_blank" rel="noopener">Netlabels collection</a> on the Internet Archive. Independent labels and artists put their music there under Creative Commons and other free licenses, so it can be streamed, shared and downloaded legally.</p>
+      <p>Openair is a free music streaming site. The free albums come from the <a href="https://archive.org/details/netlabels" target="_blank" rel="noopener">Netlabels collection</a> on the Internet Archive. Independent labels and artists put their music there under Creative Commons and other free licenses, so it can be streamed, shared and downloaded legally.</p>
       <p>Each album page shows its license. Many licenses are <em>non-commercial</em> or require <em>attribution</em>, so check the license before reusing a track in your own work.</p>
+      <h2>Malayalam music</h2>
+      <p>The <a href="#/malayalam">Malayalam</a> section uses Apple's public iTunes catalog for India. Those songs are copyrighted by their labels, so they play as the official 30-second previews Apple provides. Use <b>Full song</b> on any track to listen to the whole song on Spotify, YouTube or JioSaavn.</p>
       <h2>Your data</h2>
       <p>You don't need an account. Liked songs, playlists and history are saved only in this browser (localStorage), and nothing is sent to a server.</p>
       <p><button class="btn ghost" data-action="clear-data">${icon('trash')} Clear all my data</button></p>
@@ -510,6 +594,7 @@ const routes = [
   [/^\/liked$/, renderLiked],
   [/^\/playlist\/(.+)$/, renderPlaylist],
   [/^\/about$/, renderAbout],
+  [/^\/malayalam$/, renderMalayalam],
 ];
 
 function parseHash() {
@@ -547,7 +632,18 @@ function go(hash) {
 }
 
 function updateNav(path = parseHash().path) {
-  const section = path === '/' || path === '' ? 'home' : path.startsWith('/search') || path.startsWith('/genre') ? 'search' : path === '/liked' ? 'liked' : /^\/(library|playlist)/.test(path) ? 'library' : '';
+  const section =
+    path === '/' || path === ''
+      ? 'home'
+      : path.startsWith('/malayalam')
+      ? 'malayalam'
+      : path.startsWith('/search') || path.startsWith('/genre')
+      ? 'search'
+      : path === '/liked'
+      ? 'liked'
+      : /^\/(library|playlist)/.test(path)
+      ? 'library'
+      : '';
   $$('[data-nav]').forEach((a) => {
     const on = a.dataset.nav === section || (a.dataset.nav === 'library' && section === 'liked' && a.closest('.tabbar'));
     a.classList.toggle('active', !!on);
@@ -673,9 +769,18 @@ function playlistPicker(tracks) {
   ];
 }
 
+/** "Hear the full song on …" menu items for preview tracks. */
+function fullSongItems(t) {
+  return [
+    { heading: 'Hear the full song' },
+    ...fullSongLinks(t.title, t.artist).map((l) => ({ label: `On ${l.label}`, icon: 'external', run: () => window.open(l.url, '_blank', 'noopener') })),
+  ];
+}
+
 function trackMenu(track, playlistId) {
   const liked = store.isLiked(track.id);
   return [
+    ...(track.preview ? [...fullSongItems(track), { sep: true }] : []),
     { label: 'Play next', icon: 'queue', run: () => (player.playNext([track]), toast('Playing next')) },
     { label: 'Add to queue', icon: 'plus', run: () => (player.enqueue([track]), toast('Added to queue')) },
     { label: 'Add to playlist', icon: 'library', sub: () => playlistPicker([track]) },
@@ -689,9 +794,9 @@ function trackMenu(track, playlistId) {
     },
     { sep: true },
     { label: liked ? 'Remove from Liked Songs' : 'Save to Liked Songs', icon: liked ? 'heart-fill' : 'heart', run: () => toggleLike(track) },
-    { label: 'Go to album', icon: 'music', run: () => go(albumHref(track.albumId)) },
-    { label: 'Go to artist', icon: 'search', run: () => go(artistHref(track.artist)) },
-    { label: 'Open on Internet Archive', icon: 'external', run: () => window.open(itemUrl(track.albumId), '_blank', 'noopener') },
+    track.albumId && { label: 'Go to album', icon: 'music', run: () => go(albumHref(track.albumId)) },
+    { label: 'Go to artist', icon: 'search', run: () => go(track.artistHref || artistHref(track.artist)) },
+    !track.preview && { label: 'Open on Internet Archive', icon: 'external', run: () => window.open(itemUrl(track.albumId), '_blank', 'noopener') },
   ].filter(Boolean);
 }
 
@@ -705,8 +810,9 @@ function listMenu() {
     );
   }
   if (pageCtx?.album) {
-    items.push({ label: 'Go to artist', icon: 'search', run: () => go(artistHref(pageCtx.album.artist)) });
-    items.push({ label: 'Open on Internet Archive', icon: 'external', run: () => window.open(itemUrl(pageCtx.album.id), '_blank', 'noopener') });
+    const a = pageCtx.album;
+    items.push({ label: 'Go to artist', icon: 'search', run: () => go(a.artistHref || artistHref(a.artist)) });
+    items.push({ label: `Open on ${a.sourceName || 'Internet Archive'}`, icon: 'external', run: () => window.open(a.sourceUrl || itemUrl(a.id), '_blank', 'noopener') });
   }
   const plId = pageCtx?.playlistId;
   if (plId) {
@@ -806,6 +912,7 @@ const actions = {
     } else player.setMuted(true);
   },
   'like-current': () => player.current && toggleLike(player.current),
+  'full-song': (el) => player.current?.preview && openMenu(el, fullSongItems(player.current)),
   'toggle-queue': () => {
     // On desktop the queue lives beside the page, so leave the full-screen view first.
     if (!mobileMQ.matches) closeNowPlaying();
@@ -959,6 +1066,14 @@ document.addEventListener('keydown', (e) => {
   input.addEventListener('focus', () => {
     if (!parseHash().path.startsWith('/search') && !input.value) go('#/search');
   });
+  // Malayalam page search (only runs on submit, to respect Apple's rate limit).
+  document.addEventListener('submit', (e) => {
+    if (e.target.id !== 'ml-search') return;
+    e.preventDefault();
+    const q = new FormData(e.target).get('q')?.toString().trim() || '';
+    go(q ? `#/malayalam?q=${encodeURIComponent(q)}` : '#/malayalam');
+    if (mobileMQ.matches) document.activeElement?.blur();
+  });
   $('#search-form').addEventListener('submit', (e) => {
     e.preventDefault();
     clearTimeout(timer);
@@ -1003,8 +1118,9 @@ function onTrack() {
   ui.npTitle.textContent = t.title;
   ui.npTitle.href = albumHref(t.albumId);
   ui.npArtist.textContent = t.artist;
-  ui.npArtist.href = artistHref(t.artist);
+  ui.npArtist.href = t.artistHref || artistHref(t.artist);
   ui.npLike.hidden = false;
+  for (const b of $$('#btn-full, #fs-full')) b.hidden = !t.preview;
   $('#fs-art').innerHTML = art(t.coverLarge || t.cover, t.albumId);
   $('#fs-title').textContent = t.title;
   $('#fs-artist').textContent = t.artist;

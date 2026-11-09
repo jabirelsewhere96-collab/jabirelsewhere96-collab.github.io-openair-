@@ -1,6 +1,8 @@
 // Music catalog backed by the Internet Archive's "netlabels" collection:
 // tens of thousands of albums released by independent labels under
 // Creative Commons / free licenses. No API key needed, CORS enabled.
+// Album ids starting with "am:" come from Apple's catalog instead (see apple.js).
+import { getAppleAlbum } from './apple.js';
 
 const IA = 'https://archive.org';
 // Skip label back-catalog dumps, spoken-word releases and the (very popular, but not music)
@@ -159,6 +161,7 @@ function pickAudioFiles(files) {
 }
 
 export async function getAlbum(id, { signal } = {}) {
+  if (String(id).startsWith('am:')) return getAppleAlbum(id);
   const data = await getJSON(`${IA}/metadata/${encodeURIComponent(id)}`, { signal });
   if (!data || !data.metadata) throw new Error('Album not found');
   const md = data.metadata;

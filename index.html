@@ -34,6 +34,7 @@
       <nav class="nav">
         <a href="#/" data-nav="home"><svg class="i"><use href="#i-home" /></svg>Home</a>
         <a href="#/search" data-nav="search"><svg class="i"><use href="#i-search" /></svg>Search</a>
+        <a href="#/malayalam" data-nav="malayalam"><svg class="i"><use href="#i-music" /></svg>Malayalam</a>
         <a href="#/library" data-nav="library"><svg class="i"><use href="#i-library" /></svg>Your Library</a>
       </nav>
       <div class="sidebar-section">
@@ -103,6 +104,7 @@
         </div>
       </div>
       <div class="extras">
+        <button class="btn ghost sm full-btn" id="btn-full" data-action="full-song" title="This is a 30-second preview — hear the full song elsewhere" hidden>Full song <svg class="i"><use href="#i-external" /></svg></button>
         <button class="icon-btn" id="btn-queue" data-action="toggle-queue" aria-label="Queue" title="Queue"><svg class="i"><use href="#i-queue" /></svg></button>
         <button class="icon-btn" id="btn-mute" data-action="mute" aria-label="Mute" title="Mute (M)"><svg class="i"><use href="#i-volume" /></svg></button>
         <input type="range" id="volume" class="range vol" min="0" max="100" value="80" aria-label="Volume" />
@@ -114,6 +116,7 @@
     <nav class="tabbar" aria-label="Mobile navigation">
       <a href="#/" data-nav="home"><svg class="i"><use href="#i-home" /></svg><span>Home</span></a>
       <a href="#/search" data-nav="search"><svg class="i"><use href="#i-search" /></svg><span>Search</span></a>
+      <a href="#/malayalam" data-nav="malayalam"><svg class="i"><use href="#i-music" /></svg><span>Malayalam</span></a>
       <a href="#/library" data-nav="library"><svg class="i"><use href="#i-library" /></svg><span>Library</span></a>
     </nav>
   </div>
@@ -137,6 +140,7 @@
       </div>
       <input type="range" id="fs-seek" class="range" min="0" max="1000" value="0" aria-label="Seek" />
       <div class="fs-times"><span id="fs-cur">0:00</span><span id="fs-dur">0:00</span></div>
+      <button class="btn ghost sm full-btn fs-full" id="fs-full" data-action="full-song" hidden>30-second preview · Hear the full song <svg class="i"><use href="#i-external" /></svg></button>
       <div class="fs-controls">
         <button class="icon-btn" id="fs-shuffle" data-action="shuffle" aria-label="Shuffle"><svg class="i"><use href="#i-shuffle" /></svg></button>
         <button class="icon-btn lg" data-action="prev" aria-label="Previous"><svg class="i"><use href="#i-prev" /></svg></button>

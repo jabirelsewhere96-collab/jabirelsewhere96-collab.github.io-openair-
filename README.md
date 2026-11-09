@@ -8,6 +8,15 @@ where independent labels publish their releases under Creative Commons and other
 
 It's a static site: plain HTML, CSS and JavaScript with no build step, no server and no API keys.
 
+### Malayalam section
+
+The **Malayalam** page (`#/malayalam`) shows Apple Music India's top Malayalam songs and albums,
+and lets visitors search by film, singer or composer. It uses Apple's public iTunes catalog
+(`js/apple.js`), which needs no key. The songs are copyrighted, so they play as the **official
+30-second previews** Apple provides. Every song has a **Full song** button that opens the complete
+track on Spotify, YouTube or JioSaavn. Apple allows about 20 searches a minute per visitor, so the
+Malayalam search only runs when the visitor presses Search.
+
 ## Features
 
 - **Home** has time-of-day greetings, "Trending this week", "All-time favorites" and genre rows
@@ -58,6 +67,7 @@ The app uses hash URLs (`#/album/...`), so you don't need any server rewrite rul
 index.html        App shell: sidebar, top bar, player bar, now-playing view, icon sprite
 css/styles.css    All styling: theme tokens, layout, components, mobile breakpoints
 js/api.js         Internet Archive client: search, album and track parsing, genres, licenses
+js/apple.js       Malayalam music from Apple's iTunes catalog: charts, search, albums, previews
 js/player.js      Audio engine: queue, shuffle, repeat, media session, session restore
 js/store.js       Persistent state: likes, playlists, history, settings
 js/app.js         Router, pages, menus, dialogs and player UI

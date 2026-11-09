@@ -576,6 +576,104 @@ a.strong:hover {
   height: 14px;
 }
 
+.btn.sm {
+  height: 32px;
+  padding: 0 14px;
+  font-size: 13px;
+}
+
+.full-btn {
+  white-space: nowrap;
+  margin-right: 4px;
+}
+
+.fs-full {
+  align-self: center;
+  margin: -6px 0 0;
+}
+
+.pill.tiny {
+  margin: 0;
+  padding: 1px 6px;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: var(--chip-hover);
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.row-sub {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.full-links {
+  margin: -4px 0 12px;
+  color: var(--muted);
+  font-size: 14px;
+  gap: 8px;
+}
+
+.chip.active {
+  background: var(--text);
+  color: var(--panel);
+}
+
+.inline-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 560px;
+  height: 52px;
+  margin-top: 20px;
+  padding: 0 6px 0 16px;
+  border-radius: 999px;
+  background: var(--chip);
+  border: 1px solid transparent;
+  color: var(--muted);
+}
+
+.inline-search:focus-within {
+  border-color: var(--text);
+  background: var(--panel-2);
+}
+
+.inline-search input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 15px;
+  outline: none;
+}
+
+.ml-hint {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: linear-gradient(120deg, hsl(150 55% 32% / 0.35), hsl(170 50% 30% / 0.15));
+  border: 1px solid hsl(150 50% 45% / 0.35);
+  font-size: 14px;
+}
+
+.ml-hint span {
+  flex: 1;
+  min-width: 0;
+}
+
+.ml-hint:hover {
+  border-color: hsl(150 60% 55% / 0.7);
+}
+
 /* ---------- Range inputs ---------- */
 .range {
   --p: 0%;
@@ -2389,6 +2487,23 @@ kbd {
   .row-dur,
   .row-album {
     display: none !important;
+  }
+
+  /* On phones a tap anywhere on a song plays it (artist is in the ••• menu). */
+  .row .row-artist {
+    pointer-events: none;
+  }
+
+  .chips.scroll {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    margin: 16px -16px 0;
+    padding: 0 16px;
+    scrollbar-width: none;
+  }
+
+  .inline-search {
+    height: 48px;
   }
 
   .row:hover {

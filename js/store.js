@@ -120,13 +120,13 @@ export const store = {
 
   // ----- History -----
   rememberAlbum(album) {
-    const summary = { id: album.id, title: album.title, artist: album.artist, cover: album.cover, year: album.year };
+    const summary = { id: album.id, title: album.title, artist: album.artist, cover: album.cover, year: album.year, preview: !!album.preview };
     state.recentAlbums = [summary, ...state.recentAlbums.filter((a) => a.id !== album.id)].slice(0, 24);
     emit('recent');
   },
 };
 
 function slim(t) {
-  const { id, title, artist, album, albumId, cover, coverLarge, duration, src } = t;
-  return { id, title, artist, album, albumId, cover, coverLarge, duration, src };
+  const { id, title, artist, album, albumId, cover, coverLarge, duration, src, preview, artistHref } = t;
+  return { id, title, artist, album, albumId, cover, coverLarge, duration, src, preview, artistHref };
 }
